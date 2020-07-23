@@ -1,0 +1,9 @@
+echo "usage: $0 <region> <client-id> <client-secret> <email query> <output file>"
+recon a target
+recon t oneloginenumerategroups -s 'node[label="target"]' --region "$1" --client-id "$2" --client-secret "$3"
+recon t oneloginenumerateroles -s 'node[label="target"]' --region "$1" --client-id "$2" --client-secret "$3"
+recon t oneloginenumerateusers -s 'node[label="target"]' --region "$1" --client-id "$2" --client-secret "$3" --email "$4"
+recon t oneloginenumerateapps -s 'node[type="onelogin:user"]' --region "$1" --client-id "$2" --client-secret "$3"
+recon r -s 'node[label="target"]'
+recon e --auto-weight '*'
+recon o "$5"

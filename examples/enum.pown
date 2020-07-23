@@ -1,8 +1,0 @@
-echo "usage: $0 <region> <client-id> <client-secret> <email query>"
-recon a target
-recon t oneloginenumerategroups --auto-weight --auto-group -s 'node[label="target"]' --region "$1" --client-id "$2" --client-secret "$3"
-recon t oneloginenumerateroles --auto-weight --auto-group -s 'node[label="target"]' --region "$1" --client-id "$2" --client-secret "$3"
-recon t oneloginenumerateusers --auto-weight --auto-group -s 'node[label="target"]' --region "$1" --client-id "$2" --client-secret "$3" --email "$4"
-recon t oneloginenumerateapps --auto-weight --auto-group -s 'node[type="onelogin:user"]' --region "$1" --client-id "$2" --client-secret "$3"
-recon e --auto-weight '*'
-recon o enum.graph
