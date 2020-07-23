@@ -120,7 +120,12 @@ const oneloginEnumerateRoles = class extends OneloginTransform {
 
     static get options() {
         return {
-            ...commonOptions
+            ...commonOptions,
+
+            name: {
+                type: 'string',
+                description: 'Search by name'
+            }
         }
     }
 
@@ -133,11 +138,11 @@ const oneloginEnumerateRoles = class extends OneloginTransform {
     }
 
     async handle({ id: source = '', label = '' }, options) {
-        const { region, clientId, clientSecret } = options
+        const { region, clientId, clientSecret, name } = options
 
         const results = []
 
-        for await (let role of this.client.query({ paginate: true, region, clientId, clientSecret, path: 'roles' })) {
+        for await (let role of this.client.query({ paginate: true, region, clientId, clientSecret, path: 'roles', query: { name } })) {
             const { id, name } = role
 
             const roleNodeId = this.makeId(ROLE_TYPE, id)
@@ -176,7 +181,18 @@ const oneloginEnumerateApps = class extends OneloginTransform {
 
     static get options() {
         return {
-            ...commonOptions
+            ...commonOptions,
+
+            name: {
+                type: 'string',
+                description: 'Search by name'
+            },
+
+            groupById: {
+                type: 'boolean',
+                description: 'Group results by id',
+                default: false
+            }
         }
     }
 
@@ -189,14 +205,14 @@ const oneloginEnumerateApps = class extends OneloginTransform {
     }
 
     async handle({ id: source = '', label = '', type, props }, options) {
-        const { region, clientId, clientSecret } = options
+        const { region, clientId, clientSecret, name, groupById } = options
 
         const results = []
 
-        for await (let app of this.client.query({ paginate: true, region, clientId, clientSecret, path: `users/${type === USER_TYPE ? props.id : label}/apps` })) {
-            const { id, name, icon } = app
+        for await (let app of this.client.query({ paginate: true, region, clientId, clientSecret, path: `users/${type === USER_TYPE ? props.id : label}/apps`, query: { name } })) {
+            const { id, name, icon = '' } = app
 
-            const appNodeId = this.makeId(APP_TYPE, name)
+            const appNodeId = this.makeId(APP_TYPE, groupById ? id : name)
 
             const image = (/^https?:\/\//i.test(icon) ? icon : ` https://cdn.onelogin.com${icon}`).trim()
 
@@ -254,6 +270,36 @@ const oneloginEnumerateUsers = class extends OneloginTransform {
             username: {
                 type: 'string',
                 description: 'Search by username'
+            },
+
+            createGroups: {
+                type: 'boolean',
+                description: 'Create group nodes',
+                default: false
+            },
+
+            createDirectories: {
+                type: 'boolean',
+                description: 'Create directory nodes',
+                default: false
+            },
+
+            createRoles: {
+                type: 'boolean',
+                description: 'Create roles nodes',
+                default: false
+            },
+
+            createMemberships: {
+                type: 'boolean',
+                description: 'Create membership nodes',
+                default: true
+            },
+
+            compactMemberships: {
+                type: 'boolean',
+                description: 'Keep membership compacted',
+                default: false
             }
         }
     }
@@ -266,12 +312,24 @@ const oneloginEnumerateUsers = class extends OneloginTransform {
         return 1000
     }
 
-    async handle({ id: source = '', label = '' }, options) {
-        const { region, clientId, clientSecret, email, firstname, lastname, username } = options
+    async handle({ id: source = '', label = '', type, props }, options) {
+        const { region, clientId, clientSecret, email, firstname, lastname, username, createGroups, createDirectories, createRoles, createMemberships, compactMemberships } = options
 
         const results = []
 
-        for await (let user of this.client.query({ paginate: true, region, clientId, clientSecret, path: 'users', query: { email, firstname, lastname, username } })) {
+        const query = {}
+
+        switch (type) {
+            case DIRECTORY_TYPE:
+                query['directory_id'] = props.id
+                break
+
+            case ROLE_TYPE:
+                query['role_id'] = props.id
+                break
+        }
+
+        for await (let user of this.client.query({ paginate: true, region, clientId, clientSecret, path: 'users', query: { email, firstname, lastname, username, ...query } })) {
             const { group_id, directory_id, role_id, member_of, id, email } = user
 
             const groupId = group_id || '[None]'
@@ -282,15 +340,22 @@ const oneloginEnumerateUsers = class extends OneloginTransform {
             const groupNodeId = this.makeId(GROUP_TYPE, groupId)
             const directoryNodeId = this.makeId(DIRECTORY_TYPE, directoryId)
 
-            results.push({ type: GROUP_TYPE, id: groupNodeId, label: groupId, props: { id: groupId }, edges: [source] })
-            results.push({ type: DIRECTORY_TYPE, id: directoryNodeId, label: directoryId, props: { id: directoryId }, edges: [source] })
+            if (createGroups) {
+                results.push({ type: GROUP_TYPE, id: groupNodeId, label: groupId, props: { id: groupId }, edges: [source] })
+            }
+
+            if (createDirectories) {
+                results.push({ type: DIRECTORY_TYPE, id: directoryNodeId, label: directoryId, props: { id: directoryId }, edges: [source] })
+            }
 
             const roleNodeIds = []; // WTF???
 
             roleId.forEach((roleId) => {
                 const roleNodeId = this.makeId(ROLE_TYPE, roleId)
 
-                results.push({ type: ROLE_TYPE, id: roleNodeId, label: roleId, props: { id: roleId }, edges: [source] })
+                if (createRoles) {
+                    results.push({ type: ROLE_TYPE, id: roleNodeId, label: roleId, props: { id: roleId }, edges: [source] })
+                }
 
                 roleNodeIds.push(roleNodeId)
             })
@@ -298,11 +363,41 @@ const oneloginEnumerateUsers = class extends OneloginTransform {
             const memberNodeIds = []; // WTF???
 
             memberOf.split(';').map(t => t.trim()).filter(t => t).forEach((membership) => {
-                const membershipNodeId = this.makeId(MEMBERSHIP_TYPE, membership)
+                if (compactMemberships) {
+                    const membershipNodeId = this.makeId(MEMBERSHIP_TYPE, membership)
 
-                results.push({ type: MEMBERSHIP_TYPE, id: membershipNodeId, label: membership, props: { membership }, edges: [source] })
+                    if (createMemberships) {
+                        results.push({ type: MEMBERSHIP_TYPE, id: membershipNodeId, label: membership, props: { membership }, edges: [source] })
+                    }
 
-                memberNodeIds.push(id)
+                    memberNodeIds.push(membershipNodeId)
+                }
+                else {
+                    let bottomMemberNodeId
+
+                    membership.split(',').reverse().forEach((token) => {
+                        token = token.trim()
+
+                        let [name, value] = token.split('=')
+
+                        name = name.trim()
+                        value = value.trim()
+
+                        if (name && value) {
+                            const topMemberNodeId = bottomMemberNodeId || source
+
+                            bottomMemberNodeId = this.makeId(MEMBERSHIP_TYPE, name, value)
+
+                            if (createMemberships) {
+                                results.push({ type: MEMBERSHIP_TYPE, id: bottomMemberNodeId, label: value, props: { name, value }, edges: [topMemberNodeId] })
+                            }
+                        }
+                    })
+
+                    if (bottomMemberNodeId) {
+                        memberNodeIds.push(bottomMemberNodeId)
+                    }
+                }
             })
 
             const userNodeId = this.makeId(USER_TYPE, id, email)
