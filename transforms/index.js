@@ -13,7 +13,20 @@ exports["oneloginEnumerateGroups"] = {
         "ce"
     ],
     "types": [],
-    "options": {},
+    "options": {
+        "region": {
+            "type": "string",
+            "description": "Region for the onelogin endpoint"
+        },
+        "clientId": {
+            "type": "string",
+            "description": "The client id for authentication"
+        },
+        "clientSecret": {
+            "type": "string",
+            "description": "The client secret for authentication"
+        }
+    },
     "priority": 1000,
     "noise": 1000
 }
@@ -34,7 +47,24 @@ exports["oneloginEnumerateRoles"] = {
         "ce"
     ],
     "types": [],
-    "options": {},
+    "options": {
+        "region": {
+            "type": "string",
+            "description": "Region for the onelogin endpoint"
+        },
+        "clientId": {
+            "type": "string",
+            "description": "The client id for authentication"
+        },
+        "clientSecret": {
+            "type": "string",
+            "description": "The client secret for authentication"
+        },
+        "name": {
+            "type": "string",
+            "description": "Search by name"
+        }
+    },
     "priority": 1000,
     "noise": 1000
 }
@@ -55,7 +85,29 @@ exports["oneloginEnumerateApps"] = {
         "ce"
     ],
     "types": [],
-    "options": {},
+    "options": {
+        "region": {
+            "type": "string",
+            "description": "Region for the onelogin endpoint"
+        },
+        "clientId": {
+            "type": "string",
+            "description": "The client id for authentication"
+        },
+        "clientSecret": {
+            "type": "string",
+            "description": "The client secret for authentication"
+        },
+        "name": {
+            "type": "string",
+            "description": "Search by name"
+        },
+        "groupById": {
+            "type": "boolean",
+            "description": "Group results by id",
+            "default": false
+        }
+    },
     "priority": 1000,
     "noise": 1000
 }
@@ -76,7 +128,61 @@ exports["oneloginEnumerateUsers"] = {
         "ce"
     ],
     "types": [],
-    "options": {},
+    "options": {
+        "region": {
+            "type": "string",
+            "description": "Region for the onelogin endpoint"
+        },
+        "clientId": {
+            "type": "string",
+            "description": "The client id for authentication"
+        },
+        "clientSecret": {
+            "type": "string",
+            "description": "The client secret for authentication"
+        },
+        "email": {
+            "type": "string",
+            "description": "Search by email"
+        },
+        "firstname": {
+            "type": "string",
+            "description": "Search by firstname"
+        },
+        "lastname": {
+            "type": "string",
+            "description": "Search by lastname"
+        },
+        "username": {
+            "type": "string",
+            "description": "Search by username"
+        },
+        "createGroups": {
+            "type": "boolean",
+            "description": "Create group nodes",
+            "default": false
+        },
+        "createDirectories": {
+            "type": "boolean",
+            "description": "Create directory nodes",
+            "default": false
+        },
+        "createRoles": {
+            "type": "boolean",
+            "description": "Create roles nodes",
+            "default": false
+        },
+        "createMemberships": {
+            "type": "boolean",
+            "description": "Create membership nodes",
+            "default": true
+        },
+        "compactMemberships": {
+            "type": "boolean",
+            "description": "Keep membership compacted",
+            "default": false
+        }
+    },
     "priority": 1000,
     "noise": 1000
 }
